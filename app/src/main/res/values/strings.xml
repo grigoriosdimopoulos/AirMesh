@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AirMesh</string>
+    <string name="notification_service_title">AirMesh</string>
+    <string name="notification_service_text">Mesh network is active</string>
+    <string name="notification_message_title">New message from %1$s</string>
+    <string name="channel_service_name">AirMesh Service</string>
+    <string name="channel_messages_name">AirMesh Messages</string>
+</resources>

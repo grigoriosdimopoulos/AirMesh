@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Helmet body -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M54,30 C43,30 35,38 35,49 L35,57 L73,57 L73,49 C73,38 65,30 54,30 Z" />
+
+    <!-- Helmet visor left -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M35,52 C31,54 29,59 31,64 L36,64 L36,52 Z" />
+
+    <!-- Helmet visor right -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M73,52 C77,54 79,59 77,64 L72,64 L72,52 Z" />
+
+    <!-- Helmet band -->
+    <path
+        android:fillColor="#B8960C"
+        android:pathData="M33,55 L75,55 L75,61 L33,61 Z" />
+
+    <!-- Left wing -->
+    <path
+        android:fillColor="#FAFAFA"
+        android:pathData="M35,45 C28,39 19,41 17,49 C21,47 27,47 35,51 Z" />
+
+    <!-- Right wing -->
+    <path
+        android:fillColor="#FAFAFA"
+        android:pathData="M73,45 C80,39 89,41 91,49 C87,47 81,47 73,51 Z" />
+
+    <!-- Top plume -->
+    <path
+        android:fillColor="#FAFAFA"
+        android:pathData="M51,30 C51,24 52,17 54,14 C56,17 57,24 57,30 Z" />
+
+    <!-- Staff -->
+    <path
+        android:fillColor="#FAFAFA"
+        android:strokeColor="#FAFAFA"
+        android:strokeWidth="3"
+        android:pathData="M54,61 L54,82" />
+</vector>
