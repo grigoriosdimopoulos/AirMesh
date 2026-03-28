@@ -162,8 +162,8 @@ class BleManager @Inject constructor(
             .setIncludeDeviceName(false)
             .build()
         val cb = object : AdvertiseCallback() {
-            override fun onStartSuccess(s: AdvertiseSettings) = Log.d(TAG, "Advertising OK")
-            override fun onStartFailure(e: Int) = Log.e(TAG, "Advertising failed: $e")
+            override fun onStartSuccess(s: AdvertiseSettings) { Log.d(TAG, "Advertising OK") }
+            override fun onStartFailure(e: Int) { Log.e(TAG, "Advertising failed: $e") }
         }
         advertiseCallback = cb
         advertiser.startAdvertising(settings, data, cb)
@@ -189,10 +189,9 @@ class BleManager @Inject constructor(
             .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
             .build()
         val cb = object : ScanCallback() {
-            override fun onScanResult(type: Int, result: ScanResult) = handleScanResult(result)
-            override fun onBatchScanResults(results: List<ScanResult>) =
-                results.forEach { handleScanResult(it) }
-            override fun onScanFailed(errorCode: Int) = Log.e(TAG, "Scan failed: $errorCode")
+            override fun onScanResult(type: Int, result: ScanResult) { handleScanResult(result) }
+            override fun onBatchScanResults(results: List<ScanResult>) { results.forEach { handleScanResult(it) } }
+            override fun onScanFailed(errorCode: Int) { Log.e(TAG, "Scan failed: $errorCode") }
         }
         scanCallback = cb
         scanner.startScan(listOf(filter), settings, cb)
