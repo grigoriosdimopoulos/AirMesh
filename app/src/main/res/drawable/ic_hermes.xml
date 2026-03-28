@@ -65,12 +65,12 @@
 
     <!-- Caduceus snakes (simplified circles) -->
     <path
-        android:fillColor="none"
+        android:fillColor="#00000000"
         android:strokeColor="#0D0D0D"
         android:strokeWidth="2"
         android:pathData="M54,66 C48,66 46,70 50,72 C54,74 56,78 50,80" />
     <path
-        android:fillColor="none"
+        android:fillColor="#00000000"
         android:strokeColor="#0D0D0D"
         android:strokeWidth="2"
         android:pathData="M54,66 C60,66 62,70 58,72 C54,74 52,78 58,80" />
