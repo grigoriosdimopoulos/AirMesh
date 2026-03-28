@@ -2,7 +2,6 @@ package com.airmesh.bluetooth
 
 import android.util.Log
 import com.airmesh.data.model.MeshMessage
-import com.airmesh.data.model.NearbyDevice
 import com.airmesh.data.repository.DeviceRepository
 import com.airmesh.data.repository.MessageRepository
 import com.airmesh.notification.NotificationHelper
@@ -17,7 +16,7 @@ import javax.inject.Singleton
 @Singleton
 class MeshSyncManager @Inject constructor(
     private val bleManager: BleManager,
-    private val classicBtManager: ClassicBtManager,
+    private val classicBtManager: ClassicBtManager, // kept for DI compatibility, unused
     private val messageRepository: MessageRepository,
     private val deviceRepository: DeviceRepository,
     private val preferencesManager: PreferencesManager,
@@ -30,9 +29,6 @@ class MeshSyncManager @Inject constructor(
     }
 
     private var scope: CoroutineScope? = null
-    // Track which MACs we've synced recently to avoid hammering the same device
-    private val recentlySynced = mutableMapOf<String, Long>()
-    private val SYNC_COOLDOWN_MS = 60_000L
 
     fun start(coroutineScope: CoroutineScope) {
         scope = coroutineScope
@@ -41,36 +37,38 @@ class MeshSyncManager @Inject constructor(
             Log.w(TAG, "Username not set — mesh sync deferred")
             return
         }
-        setupClassicBt(myName)
-        classicBtManager.startServer(coroutineScope)
-        bleManager.startAdvertising(myName)
-        bleManager.startScanning()
 
-        // Observe nearby devices and trigger sync
+        // Wire BLE callbacks
+        bleManager.getMessagesToSend = {
+            messageRepository.getUndeliveredMessages().filter { it.ttl > 0 }
+        }
+
+        bleManager.onMessageReceived = { message, peerName ->
+            processIncomingMessage(message, myName, peerName)
+        }
+
+        bleManager.start(coroutineScope, myName)
+
+        // Update device last-seen timestamps from BLE observations
         coroutineScope.launch {
             bleManager.nearbyDevicesFlow.collectLatest { devices ->
                 devices.forEach { device ->
                     deviceRepository.updateLastSeen(device.name)
-                    triggerSyncIfNeeded(device)
                 }
             }
         }
 
-        // Periodic sync sweep
+        // Periodic stale device pruning
         coroutineScope.launch {
             while (isActive) {
                 delay(SYNC_INTERVAL_MS)
                 bleManager.pruneStaleDevices()
-                bleManager.nearbyDevicesFlow.value.forEach { device ->
-                    triggerSyncIfNeeded(device, force = true)
-                }
             }
         }
     }
 
     fun stop() {
-        bleManager.stopAll()
-        classicBtManager.stopServer()
+        bleManager.stop()
         scope?.cancel()
         scope = null
     }
@@ -89,28 +87,8 @@ class MeshSyncManager @Inject constructor(
         )
         messageRepository.saveMessage(message)
         deviceRepository.recordSent(receiverId)
-        Log.d(TAG, "Message queued: $message")
-
-        // Attempt immediate sync with any nearby device
-        scope?.launch(Dispatchers.IO) {
-            bleManager.nearbyDevicesFlow.value.forEach { device ->
-                classicBtManager.connectAndSync(device.macAddress)
-            }
-        }
-    }
-
-    private fun setupClassicBt(myName: String) {
-        classicBtManager.getMessagesToSend = {
-            messageRepository.getUndeliveredMessages()
-                .filter { it.ttl > 0 }
-        }
-
-        classicBtManager.onMessagesReceived = { messages, peerName ->
-            deviceRepository.updateLastSeen(peerName)
-            messages.forEach { msg ->
-                processIncomingMessage(msg, myName, peerName)
-            }
-        }
+        Log.d(TAG, "Message queued for delivery to $receiverId")
+        // BleManager will push the message on next GATT connection to a nearby peer
     }
 
     private suspend fun processIncomingMessage(
@@ -118,7 +96,6 @@ class MeshSyncManager @Inject constructor(
         myName: String,
         peerName: String
     ) {
-        // Decrement TTL for relay; discard expired
         val decremented = message.copy(
             ttl = message.ttl - 1,
             hopPath = message.hopPath + myName
@@ -128,30 +105,16 @@ class MeshSyncManager @Inject constructor(
             return
         }
 
-        // Save for relay (or direct delivery)
         messageRepository.saveMessage(decremented)
 
         if (decremented.receiverId == myName) {
-            // Delivered to us
             messageRepository.markDelivered(decremented.messageId)
             deviceRepository.recordReceived(decremented.senderId)
             notificationHelper.showMessageNotification(decremented.senderId, decremented.content)
             Log.d(TAG, "Message delivered to us from ${decremented.senderId}")
         } else {
-            // We are relaying
             deviceRepository.recordCarried(peerName)
-            Log.d(TAG, "Relaying message ${message.messageId} to ${decremented.receiverId}")
-        }
-    }
-
-    private fun triggerSyncIfNeeded(device: NearbyDevice, force: Boolean = false) {
-        val now = System.currentTimeMillis()
-        val lastSync = recentlySynced[device.macAddress] ?: 0L
-        if (!force && now - lastSync < SYNC_COOLDOWN_MS) return
-
-        recentlySynced[device.macAddress] = now
-        scope?.launch(Dispatchers.IO) {
-            classicBtManager.connectAndSync(device.macAddress)
+            Log.d(TAG, "Relaying message ${message.messageId} toward ${decremented.receiverId}")
         }
     }
 }
