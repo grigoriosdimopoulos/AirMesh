@@ -23,14 +23,27 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Set up Android SDK
+        run: |
+          # ubuntu-latest has the Android SDK pre-installed
+          ANDROID_SDK_PATH=/usr/local/lib/android/sdk
+          echo "ANDROID_HOME=$ANDROID_SDK_PATH" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_PATH" >> $GITHUB_ENV
+          echo "$ANDROID_SDK_PATH/platform-tools" >> $GITHUB_PATH
+          # Accept any pending SDK licenses
+          yes | $ANDROID_SDK_PATH/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
+          # Install required build tools and platform
+          $ANDROID_SDK_PATH/cmdline-tools/latest/bin/sdkmanager \
+            "platforms;android-34" \
+            "build-tools;34.0.0" > /dev/null 2>&1 || true
 
       - name: Grant Gradle wrapper execute permission
         run: chmod +x gradlew
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug --no-daemon --stacktrace
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.daemon=false"
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
@@ -42,6 +55,8 @@ jobs:
       - name: Build Release APK (unsigned)
         run: ./gradlew assembleRelease --no-daemon
         continue-on-error: true
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.daemon=false"
 
       - name: Upload Release APK (unsigned)
         uses: actions/upload-artifact@v4
